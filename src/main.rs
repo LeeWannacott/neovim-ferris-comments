@@ -15,12 +15,8 @@ impl Commenter {
     fn new() -> Commenter {
         Commenter {}
         }
-        fn add(&self, nums: Vec<i64>) -> i64 {
-            nums.iter().sum::<i64>()
-          }
-          
-        // Multiply two numbers
-        fn multiply(&self, p: i64, q: i64) -> i64 {
+        // Comment a line out. 
+        fn comment(&self, p: i64, q: i64) -> i64 {
             p * q
         }
 }
@@ -43,28 +39,15 @@ impl EventHandler {
         let receiver = self.nvim.session.start_event_loop_channel();
         for(event,values) in receiver {
             match Messages::from(event) {
-                Messages::Add => {
-                    let nums = values
-                    .iter()
-                    .map(|v| v.as_i64().unwrap())
-                    .collect::<Vec<i64>>();
-
-                let sum = self.commenter.add(nums);
-                self.nvim // <-- Echo response to Nvim
-                    .command(&format!("echo \"Sum: {}\"", sum.to_string()))
-                    .unwrap();
-                    
-                }
-                Messages::Multiply => {
+                Messages::CommentLine => {
                     let mut nums = values.iter();
                 let p = nums.next().unwrap().as_i64().unwrap();
                 let q = nums.next().unwrap().as_i64().unwrap();
 
-                let product = self.commenter.multiply(p, q);
+                let product = self.commenter.comment(q,p);
                 self.nvim // <-- Echo response to Nvim
                     .command(&format!("echo \"Product: {}\"", product.to_string()))
                     .unwrap();
-                  
                 }
                 Messages::Unknown(event) => {
                     self.nvim // <-- Echo unknown command
@@ -78,16 +61,14 @@ impl EventHandler {
 }
 
 enum Messages {
-    Add,
-    Multiply,
+    CommentLine,
     Unknown(String),
 }
 
 impl From<String> for Messages {
     fn from(event: String) -> Self {
         match &event[..] {
-            "add" => Messages::Add,
-            "multiply" => Messages::Multiply,
+            "CommentLine" => Messages::CommentLine,
             _ => Messages::Unknown(event),
         }
     }
