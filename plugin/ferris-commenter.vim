@@ -1,14 +1,18 @@
 " Initialize the channel
-if !exists('s:calculatorJobId')
-	let s:calculatorJobId = 0
+if !exists('s:commenterJobId')
+	let s:commenterJobId = 0
+endif
+
+let s:scriptdir = resolve(expand('<sfile>:p:h') . '/..')
+
+if ! exists('g:ferris_comments_program')
+  let g:ferris_comments_program = s:scriptdir . '/target/debug/ferris-comments'
 endif
 
 " Constants for RPC messages.
 let s:Add = 'add'
 let s:Multiply = 'multiply'
 
-" let s:bin = '../target/debug/ferris-comments' figure out why this isnt working
-let s:bin = '/home/lee/Desktop/rust_comments/ferris-comments/target/debug/ferris-comments'
 
 " Entry point. Initialize RPC. If it succeeds, then attach commands to the `rpcnotify` invocations.
 function! s:connect()
@@ -20,7 +24,7 @@ function! s:connect()
     echoerr "calculator: rpc process is not executable"
   else
     " Mutate our jobId variable to hold the channel ID
-    let s:calculatorJobId = id 
+    let s:commenterJobId = id 
     
     call s:configureCommands()
   endif
@@ -36,23 +40,23 @@ function! s:add(...)
   let s:p = get(a:, 1, 0)
   let s:q = get(a:, 2, 0)
 
-  call rpcnotify(s:calculatorJobId, s:Add, str2nr(s:p), str2nr(s:q))
+  call rpcnotify(s:commenterJobId, s:Add, str2nr(s:p), str2nr(s:q))
 endfunction
 
 function! s:multiply(...)
   let s:p = get(a:, 1, 1)
   let s:q = get(a:, 2, 1)
 
-  call rpcnotify(s:calculatorJobId, s:Multiply, str2nr(s:p), str2nr(s:q))
+  call rpcnotify(s:commenterJobId, s:Multiply, str2nr(s:p), str2nr(s:q))
 endfunction
 
 " Initialize RPC
 function! s:initRpc()
-  if s:calculatorJobId == 0
-    let jobid = jobstart([s:bin], { 'rpc': v:true })
+  if s:commenterJobId == 0
+    let jobid = jobstart([s:ferris_comments_program], { 'rpc': v:true, 'on_stderr': function('s:OnStderr')})
     return jobid
   else
-    return s:calculatorJobId
+    return s:commenterJobId
   endif
 endfunction
 

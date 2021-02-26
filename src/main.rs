@@ -19,10 +19,10 @@ impl Commenter {
             nums.iter().sum::<i64>()
           }
           
-          // Multiply two numbers
-          fn multiply(&self, p: i64, q: i64) -> i64 {
-             p * q
-          }
+        // Multiply two numbers
+        fn multiply(&self, p: i64, q: i64) -> i64 {
+            p * q
+        }
 }
 
 struct EventHandler {
