@@ -1,60 +1,49 @@
 " Initialize the channel
-if ! exists('s:ferrisjobid')
-	let s:ferrisjobid = 0
+if !exists('s:ferrisJobId')
+	let s:ferrisJobId = 0
 endif
 
-let s:path = resolve(expand('<sfile>:p:h') . '/..')
+" Constants for RPC messages.
+let s:CommentLine = 'commentline'
 
+let s:path = resolve(expand('<sfile>:p:h') . '/..')
 let s:bin = s:path . '/target/debug/neovim-ferris-comments'
 
-" Constants for RPC messages.
-let s:Comment = 'comment'
-
-
 " Entry point. Initialize RPC. If it succeeds, then attach commands to the `rpcnotify` invocations.
-function! s:init()
-  let id = s:GetJobId()
+function! s:connect()
+  let id = s:initRpc()
   
   if 0 == id
-    echoerr "commenter: cannot start rpc process"
+    echoerr "Ferris: cannot start rpc process"
   elseif -1 == id
-    echoerr "commenter: rpc process is not executable"
+    echoerr "Ferris: rpc process is not executable"
   else
     " Mutate our jobId variable to hold the channel ID
-    let s:ferrisjobid = id 
+    let s:ferrisJobId = id 
     
-    call s:configureCommands(id)
+    call s:configureCommands()
   endif
 endfunction
 
-function! s:configureCommands(jobid)
-  " command! -nargs=+ Add :call s:add(<f-args>)
-  command! -nargs=+ Comment :call s:comment(<f-args>)
+function! s:configureCommands()
+  command! -nargs=+ CommentLine :call s:commentline(<f-args>)
 endfunction
 
-function! s:comment(...)
-  let s:p = get(a:, 1)
+function! s:commentline(...)
+  let s:p = get(a:, 1, 0)
+  let s:q = get(a:, 2, 0)
 
-  call rpcnotify(s:ferrisjobid, s:Comment, str2nr(s:p))
-endfunction
-
-function! s:OnStderr(id, data, event) dict
-  echom 'ferris commenter: stderr: ' . join(a:data, "\n")
+  call rpcnotify(s:ferrisJobId, s:CommentLine, str2nr(s:p), str2nr(s:q))
 endfunction
 
 " Initialize RPC
-function! s:GetJobId()
-  if s:ferrisjobid == 0
-    let jobid = jobstart([s:bin], { 'rpc': v:true, 'on_stderr': function('s:OnStderr')})
+function! s:initRpc()
+  if s:ferrisJobId == 0
+    let jobid = jobstart([s:bin], { 'rpc': v:true })
     return jobid
   else
-    return s:ferrisjobid
+    return s:ferrisJobId
   endif
 endfunction
 
-" Send an RPC message to the remote process.
-function! s:rpc(rpcMessage)
-	call rpcnotify(s:ferrisjobid, a:rpcMessage)
-endfunction
-
-call s:init()
+call s:connect()

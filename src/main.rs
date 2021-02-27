@@ -1,74 +1,76 @@
 extern crate neovim_lib;
-use neovim_lib::{Neovim,NeovimApi,Session};
 
-fn main() {
-    println!("Hello, world!");
-    let mut event_handler = EventHandler::new();
-    event_handler.handle_events();
+use neovim_lib::{Neovim, NeovimApi, Session};
+
+struct Ferris;
+
+impl Ferris {
+    fn new() -> Ferris {
+        Ferris {}
+    }
+    // comment lines in buffer out
+    fn commentline(&self, nums: Vec<i64>) -> i64 {
+        nums.iter().sum::<i64>()
+    }
 }
 
 enum Messages {
-    Comment,
+    CommentLine,
     Unknown(String),
 }
+
 impl From<String> for Messages {
     fn from(event: String) -> Self {
         match &event[..] {
-            "comment" => Messages::Comment,
+            "commentline" => Messages::CommentLine,
             _ => Messages::Unknown(event),
         }
     }
 }
 
-
-struct Ferris;
-impl Ferris {
-    fn new() -> Ferris {
-        Ferris {}
-        }
-        // Comment a line out. 
-        fn comment(&self, p: i64) -> i64 {
-            p 
-        }
-}
-
-pub struct EventHandler {
+struct EventHandler {
     nvim: Neovim,
     ferris: Ferris,
 }
 
 impl EventHandler {
     fn new() -> EventHandler {
-        let mut session = Session::new_parent().unwrap();
+        let session = Session::new_parent().unwrap();
         let nvim = Neovim::new(session);
         let ferris = Ferris::new();
-    EventHandler {nvim, ferris}
+
+        EventHandler { nvim, ferris }
     }
 
-    pub fn handle_events(&mut self) {
+    fn recv(&mut self) {
         let receiver = self.nvim.session.start_event_loop_channel();
-        for(event,values) in receiver {
+
+        for (event, values) in receiver {
             match Messages::from(event) {
+                // Handle 'Add'
+                Messages::CommentLine => {
+                    let nums = values
+                        .iter()
+                        .map(|v| v.as_i64().unwrap())
+                        .collect::<Vec<i64>>();
 
-                Messages::Comment => {
-                    let mut nums = values.iter();
-                let p = nums.next().unwrap().as_i64().unwrap();
-
-                let product = self.ferris.comment(p);
-                self.nvim // <-- Echo response to Nvim
-                    .command(&format!("echo \"Product: {}\"", product.to_string()))
-                    .unwrap();
+                    let sum = self.ferris.commentline(nums);
+                    self.nvim
+                        .command(&format!("echo \"Sum: {}\"", sum.to_string()))
+                        .unwrap();
                 }
-
+                // Handle anything else
                 Messages::Unknown(event) => {
-                    self.nvim // <-- Echo unknown command
-                    .command(&format!("echo \"Unknown command: {}\"", event))
-                    .unwrap();
+                    self.nvim
+                        .command(&format!("echo \"Unknown command: {}\"", event))
+                        .unwrap();
                 }
             }
         }
-        // todo
     }
 }
 
-
+fn main() {
+    let mut event_handler = EventHandler::new();
+    event_handler.recv();
+}
